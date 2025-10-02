@@ -8,4 +8,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/GameOverScene.unity
+    guid: 0db7f8c21c9677349ab9ed1483f01ded
+  - enabled: 1
+    path: Assets/Scenes/Vencedor.unity
+    guid: cc4eff12026fed34b9100025740f7581
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0

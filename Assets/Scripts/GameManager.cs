@@ -1,32 +1,54 @@
+// GameManager.cs - CÓDIGO FINAL COM UPGRADE
+
 using UnityEngine;
-using TMPro; // Necessário para TextMeshPro
-using System.Collections; // Necessário para Coroutines (IEnumerator)
+using TMPro;
+using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    // --- Variáveis de Pontuação ---
+    // ... (Variáveis de Vidas e Pontuação - MANTIDAS)
+    public int playerLives = 3;
+    public TextMeshProUGUI livesText;
     public int score = 0;
     public TextMeshProUGUI scoreText;
-    private float timeScoreTimer = 0f; // Timer para pontuação por tempo
-    public int scorePerSecond = 1;     // Pontos por segundo (Regra: Sobreviver)
+    private float timeScoreTimer = 0f;
+    public int scorePerSecond = 1;
 
     // --- Variáveis de Time Warp ---
-    public float slowMotionFactor = 0.3f; // Efeito no jogo: x 0.3
-    public float slowMotionDuration = 5f; // Duração: 5 segundos
-    private float normalTimeScale = 1.0f;
+    [Header("Slow Motion Control")]
+    public float slowMotionFactor = 0.05f;
+    private float normalTimeScale = 1f;
     private float normalFixedDeltaTime;
 
-    // O Singleton garante que apenas uma instância deste script exista
+    // NOVO: Controle de Evento do Slow Motion
+    [Header("Slow Motion Game Event")]
+    public float initialSlowMotionDelay = 20f; // Começa aos 20s
+    public float slowMotionDuration = 10f; // Duração: 10 segundos (Alterado)
+    private bool hasSlowMotionTriggered = false; // Garante que o evento só ocorra uma vez
+
+    // --- Variáveis de Upgrade de Nave ---
+    [Header("Upgrade Settings")]
+    public int scoreUpgradeLevel2 = 1000;
+    public int scoreUpgradeLevel3 = 2000;
+
+    private bool upgradedToLevel2 = false;
+    private bool upgradedToLevel3 = false;
+
+
     public static GameManager instance;
+    public string gameOverSceneName = "GameOverScene";
+    public string winSceneName = "Vencedor";
 
     void Awake()
     {
-        // Configuração do Singleton
         if (instance == null)
         {
             instance = this;
-            // Salva o valor padrão do FixedDeltaTime aqui!
             normalFixedDeltaTime = Time.fixedDeltaTime;
+
+            UpdateLivesDisplay();
+            UpdateScoreDisplay();
         }
         else
         {
@@ -36,27 +58,65 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        // 1. Pontuação por Tempo (Usando Time.deltaTime para ser suave e consistente)
+        // 1. Pontuação por Tempo (MANTIDO)
         timeScoreTimer += Time.deltaTime;
         if (timeScoreTimer >= 1f)
         {
-            score += scorePerSecond;
-            UpdateScoreDisplay();
-            timeScoreTimer = 0f; // Reseta o timer
+            AddScore(scorePerSecond);
+            timeScoreTimer = 0f;
         }
 
-        // 2. Gatilho de Slow Motion (Pode ser chamado aqui para verificar pontuação em tempo real)
-        // OBS: Você pode chamar este método no AddScore() para maior eficiência.
-        CheckForSlowTime();
+        // NOVO: 2. Lógica de Evento - Início Automático do Slow Motion
+        if (!hasSlowMotionTriggered && Time.time >= initialSlowMotionDelay)
+        {
+            hasSlowMotionTriggered = true;
+            StartCoroutine(SlowTimeCoroutine());
+        }
+
+        // NOVO: 3. Lógica de Upgrade de Nave por Pontuação
+        if (!upgradedToLevel2 && score >= scoreUpgradeLevel2)
+        {
+            TriggerUpgrade(2);
+        }
+        else if (!upgradedToLevel3 && score >= scoreUpgradeLevel3)
+        {
+            TriggerUpgrade(3);
+        }
+
+        // 4. CONDIÇÃO DE VITÓRIA (MANTIDO)
+        if (score >= 2600)
+        {
+            LoadWinScene();
+        }
     }
 
-    // --- Métodos de Pontuação ---
+    // NOVO: Método para acionar o Upgrade
+    void TriggerUpgrade(int targetLevel)
+    {
+        // 1. Localiza a nave com a tag "Player"
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
+        if (playerObj != null)
+        {
+            // Tenta obter o script PlayerUpgrade da nave
+            PlayerUpgrade upgradeScript = playerObj.GetComponent<PlayerUpgrade>();
+
+            if (upgradeScript != null && upgradeScript.currentLevel < targetLevel) // Verifica se o upgrade é realmente um avanço
+            {
+                upgradeScript.PerformUpgrade();
+
+                // Marca o upgrade como feito para não disparar novamente
+                if (targetLevel == 2) upgradedToLevel2 = true;
+                else if (targetLevel == 3) upgradedToLevel3 = true;
+            }
+        }
+    }
+
+
     public void AddScore(int points)
     {
         score += points;
         UpdateScoreDisplay();
-        // Pode verificar o gatilho aqui após cada pontuação
-        // CheckForSlowTime(); 
     }
 
     void UpdateScoreDisplay()
@@ -67,48 +127,53 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // --- Métodos de Time Warp ---
-
-    // Gatilho: Atingir 1000 pontos (ou Power-up)
-    public void CheckForSlowTime()
+    public void LoseLife()
     {
-        // Se a pontuação for o gatilho (e ainda não está em Slow Time)
-        if (score >= 1000 && Time.timeScale == normalTimeScale)
+        if (playerLives <= 0) return;
+
+        playerLives--;
+        UpdateLivesDisplay();
+
+        if (playerLives <= 0)
         {
-            ActivateSlowTime();
-            // Ação: Subtrair a pontuação como "custo" para usar a habilidade.
-            score -= 1000;
-            UpdateScoreDisplay();
+            GameOver();
         }
     }
 
-    // Método principal para iniciar o Slow Motion
-    public void ActivateSlowTime()
+    void UpdateLivesDisplay()
     {
-        // Evita iniciar novamente se já estiver ativo
-        if (Time.timeScale != normalTimeScale) return;
-
-        StartCoroutine(SlowTimeCoroutine());
-
-        // **Visual/Feedback:** Implemente aqui a mudança visual (ex: Tela azulada)
+        if (livesText != null)
+        {
+            livesText.text = "Vidas: " + playerLives.ToString();
+        }
     }
 
-    // Coroutine para gerenciar a duração do efeito
+    void GameOver()
+    {
+        Debug.Log("GAME OVER! Sua pontuação final: " + score);
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = normalFixedDeltaTime;
+        SceneManager.LoadScene(gameOverSceneName);
+    }
+
+    public void LoadWinScene()
+    {
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = normalFixedDeltaTime;
+        SceneManager.LoadScene(winSceneName);
+    }
+
+    // --- Método de Slow Warp 
     IEnumerator SlowTimeCoroutine()
     {
-        // Aplica o Slow Motion
         Time.timeScale = slowMotionFactor;
-
-        // Importante para a Física: Ajusta o fixedDeltaTime
         Time.fixedDeltaTime = normalFixedDeltaTime * Time.timeScale;
+        Debug.Log($"Time Warp ATIVADO! TimeScale setado para {slowMotionFactor}.");
 
-        // Espera pela duração (em tempo real)
         yield return new WaitForSecondsRealtime(slowMotionDuration);
 
-        // Restaura o tempo normal
         Time.timeScale = normalTimeScale;
         Time.fixedDeltaTime = normalFixedDeltaTime;
-
-        // **Visual/Feedback:** Restaura o visual normal
+        Debug.Log("Time Warp RESTAURADO! TimeScale setado para 1.0.");
     }
 }

@@ -3,21 +3,19 @@ using System.Collections;
 
 public class SpawnManager : MonoBehaviour
 {
-    // O Prefab ÚNICO do Inimigo (aquele com o script Enemy.cs anexado)
-    public GameObject enemyPrefab;
+    // O Prefab ÚNICO do Inimigo
+    public GameObject inimigobasePrefab;
     public float spawnInterval = 5f;
 
     // Configuração de Limites
     public float minY = -4f;
     public float maxY = 4f;
-    public float spawnX = 10f; // Posição X de onde o inimigo começa (borda direita)
+    public float spawnX = 10f; // Posição X de onde o inimigo começa
 
     void Start()
     {
-        // ... (Verificação de câmera, se você usa a versão dinâmica, use essa) ...
         StartCoroutine(SpawnRoutine());
     }
-
     IEnumerator SpawnRoutine()
     {
         while (true)
@@ -29,34 +27,48 @@ public class SpawnManager : MonoBehaviour
             Vector3 spawnPosition = new Vector3(spawnX, randomY, 0);
 
             // 2. Cria o Inimigo (Instancia)
-            GameObject newEnemyObj = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+            GameObject newInimigoBaseObj = Instantiate(inimigobasePrefab, spawnPosition, Quaternion.identity);
 
-            // 3. Obtém o script Enemy
-            Enemy enemyScript = newEnemyObj.GetComponent<Enemy>();
+            // 3. Obtém o script InimigoBase
+            InimigoBase inimigoScript = newInimigoBaseObj.GetComponent<InimigoBase>();
 
-            if (enemyScript != null)
+            if (inimigoScript != null)
             {
                 // 4. Decisão Aleatória do Tipo de Inimigo
-                // 0: Tipo 1 (Básico) | 1: Tipo 2 (Senoidal)
-                int enemyType = Random.Range(0, 2); // Gera 0 ou 1
+                int inimigoType = Random.Range(0, 3);
 
-                if (enemyType == 1)
+                // Zera as flags de tipo
+                inimigoScript.isType2 = false;
+                inimigoScript.isHeavy = false;
+
+                // === CONFIGURAÇÃO DOS TIPOS ===
+
+                if (inimigoType == 2) // TIPO 3: PESADO (Lento, Muita Vida)
                 {
-                    // Configurações para INIMIGO AVANÇADO (Tipo 2 Senoidal)
-                    enemyScript.isType2 = true;
-                    enemyScript.hp = 3;             // Mais resistente
-                    enemyScript.speed = 4f;         // Um pouco mais lento, mas com movimento complexo
-                    enemyScript.scoreValue = 300;
-                    // Note: Frequency e Magnitude já estão no Prefab, mas podem ser ajustados aqui se necessário.
+                    inimigoScript.isHeavy = true;
+                    inimigoScript.hp = 5;
+                    inimigoScript.speed = 2.5f;
+                    inimigoScript.scoreValue = 500;
+                    inimigoScript.fireRate = 4f;
                 }
-                else
+                else if (inimigoType == 1) // TIPO 2: AVANÇADO (Senoidal)
                 {
-                    // Configurações para INIMIGO BÁSICO (Tipo 1 Linear)
-                    enemyScript.isType2 = false;
-                    enemyScript.hp = 1;
-                    enemyScript.speed = 5f;
-                    enemyScript.scoreValue = 100;
+                    inimigoScript.isType2 = true;
+                    inimigoScript.hp = 3;
+                    inimigoScript.speed = 4f;
+                    inimigoScript.scoreValue = 300;
+                    inimigoScript.fireRate = 2f;
                 }
+                else // TIPO 1: BÁSICO (Linear Padrão) (enemyType == 0)
+                {
+                    inimigoScript.hp = 1;
+                    inimigoScript.speed = 5f;
+                    inimigoScript.scoreValue = 100;
+                    inimigoScript.fireRate = 1f;
+                }
+
+                // 5. APLICA O VISUAL
+                inimigoScript.SetVisuals();
             }
         }
     }
