@@ -13,29 +13,13 @@ Um jogo de naves espaciais desenvolvido em **Unity (C#)** onde você enfrenta in
 ---
 
 ## 🎯 Regras do jogo
+| Entidade      | Vidas | Movimento          | Atira | Direção do tiro         | Pontuação                       |
+| ------------- | ----- | ------------------ | ----- | ----------------------- | ------------------------------- |
+| **Player**    | 3     | Esquerda ↔ Direita | Sim   | ➡️ (esquerda → direita) | —                               |
+| **EnemyShip** | 2     | Direita → Esquerda | Sim   | ➡️ (direita → esquerda) | +500 por vida                   |
+| **Meteor**    | 1     | Cima → Baixo       | Não   | —                       | +100                            |
+| **Boss**      | 4     | Fixo (Direita)     | Sim   | ➡️ (direita → esquerda) | +2000 por vida, +5000 ao morrer |
 
-### 👨‍🚀 Player
-- 3 vidas.
-- Atira da esquerda para a direita.
-- Se perder todas as vidas → Game Over.
-
-### 👾 EnemyShip
-- 2 vidas.
-- Move-se da direita para a esquerda.
-- Atira na direção do Player.
-- Cada vida perdida vale **500 pontos**.
-
-### ☄️ Meteor
-- Move-se de cima para baixo.
-- Não atira.
-- Cada meteoro destruído vale **100 pontos**.
-
-### 🧠 Boss
-- Surge ao atingir **2000 pontos**.
-- Possui **4 vidas**.
-- Atira da direita para a esquerda em direção ao Player.
-- Cada vida perdida dá **+2000 pontos**.
-- Ao ser derrotado, o jogador ganha **+5000 pontos** e vence o jogo.
 
 ---
 
