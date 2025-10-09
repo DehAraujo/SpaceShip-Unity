@@ -8,7 +8,7 @@ Um jogo de naves espaciais desenvolvido em **Unity (C#)** onde você enfrenta in
 
 - **Mover:** Use as setas ou `WASD`  
 - **Atirar:** Pressione `Espaço`  
-- **Slow Motion:** Pressione `Shift` para ativar o tempo lento (disponível a cada **20 segundos**, dura **6 segundos**)  
+- **Slow Motion:** É ativado a cada **20 segundos** para ativar o tempo lento com duração de **6 segundos**. 
 - **Objetivo:** Ganhar pontos destruindo meteoros, naves inimigas e o boss final.
 
 ---
@@ -37,11 +37,24 @@ Um jogo de naves espaciais desenvolvido em **Unity (C#)** onde você enfrenta in
 
 ## ⚡ Slow Motion (Modo Especial)
 
-Durante o jogo, o jogador pode ativar o **modo Slow Motion** pressionando `Shift`.  
+Durante o jogo, aa cada 20 segundos o Slow Motion é ativado.
 Quando ativado:
 - O tempo desacelera em **50%** por **6 segundos**.  
 - O jogador ganha mais precisão para desviar e mirar.  
-- Após o uso, há um **tempo de recarga de 20 segundos** antes de poder ativar novamente.
+- Após o uso, há um **tempo de espera de 20 segundos** antes de ativar novamente.
+
+---
+
+## 🔊 Áudio e Trilha Sonora
+
+O jogo conta com efeitos sonoros e música ambiente para intensificar a imersão espacial:
+
+| Tipo de Som | Arquivo / Efeito | Descrição |
+|--------------|------------------|------------|
+| **Tiro do Player** | `shoot` | Som emitido ao disparar |
+| **Boss Spawn** | `bosssound` | Sinal sonoro de alerta do chefão |
+| **Trilha de Fundo** | `backgroundsound` | Música ambiente espacial com batidas suaves |
+
 
 ---
 
@@ -51,6 +64,8 @@ Quando ativado:
 - **C#**  
 - **TextMeshPro**  
 - **Sprites 2D e Física 2D**
+- **AudioSource / AudioMixer**
+- **Time.timeScale (para Slow Motion)**
 
 ---
 
