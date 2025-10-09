@@ -1,179 +1,244 @@
-// GameManager.cs - CÓDIGO FINAL COM UPGRADE
-
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
-using System.Collections;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    // ... (Variáveis de Vidas e Pontuação - MANTIDAS)
-    public int playerLives = 3;
-    public TextMeshProUGUI livesText;
-    public int score = 0;
-    public TextMeshProUGUI scoreText;
-    private float timeScoreTimer = 0f;
-    public int scorePerSecond = 1;
-
-    // --- Variáveis de Time Warp ---
-    [Header("Slow Motion Control")]
-    public float slowMotionFactor = 0.05f;
-    private float normalTimeScale = 1f;
-    private float normalFixedDeltaTime;
-
-    // NOVO: Controle de Evento do Slow Motion
-    [Header("Slow Motion Game Event")]
-    public float initialSlowMotionDelay = 20f; // Começa aos 20s
-    public float slowMotionDuration = 10f; // Duração: 10 segundos (Alterado)
-    private bool hasSlowMotionTriggered = false; // Garante que o evento só ocorra uma vez
-
-    // --- Variáveis de Upgrade de Nave ---
-    [Header("Upgrade Settings")]
-    public int scoreUpgradeLevel2 = 1000;
-    public int scoreUpgradeLevel3 = 2000;
-
-    private bool upgradedToLevel2 = false;
-    private bool upgradedToLevel3 = false;
-
-
     public static GameManager instance;
-    public string gameOverSceneName = "GameOverScene";
-    public string winSceneName = "Vencedor";
+
+    [Header("UI")]
+    public TMP_Text scoreText;
+    public TMP_Text livesText;
+    public TMP_Text bossLivesText;
+    public TMP_Text finalScoreText;
+
+    [Header("Player Stats")]
+    public int playerLives = 3;
+    public int score;
+
+    [Header("Boss Config")]
+    public GameObject bossPrefab;
+    private GameObject currentBoss;
+    private int bossLives = 4;
+    private bool bossSpawned = false;
+
+    private bool isGameOver = false;
+    private float damageCooldown = 0.8f;
+    private float lastDamageTime = -999f;
+
+    private Spawner spawner;
 
     void Awake()
     {
         if (instance == null)
         {
             instance = this;
-            normalFixedDeltaTime = Time.fixedDeltaTime;
-
-            UpdateLivesDisplay();
-            UpdateScoreDisplay();
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
             Destroy(gameObject);
         }
+
+        // Chamado apenas na primeira vez que o objeto Ã© criado
+        InitializeGameStart();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // 1. Sempre busca as referÃªncias de UI da cena atual
+        InitializeSceneReferences(scene);
+
+        if (scene.name == "SampleScene")
+        {
+            // 2. Reinicia o estado do jogo apenas ao carregar a cena principal ("SampleScene")
+            InitializeGameStart();
+
+            // Garantimos que o Spawner estÃ¡ habilitado ao iniciar o jogo
+            if (spawner != null)
+                spawner.enabled = true;
+        }
+
+        // 3. Garante que a UI seja atualizada imediatamente com o novo estado (3 vidas, 0 score)
+        UpdateUI();
+
+        // 4. Se estiver em uma cena de placar, carrega o placar final
+        if (scene.name == "GameOverScene" || scene.name == "VictoryScene")
+        {
+            LoadFinalScore();
+            if (finalScoreText != null) finalScoreText.gameObject.SetActive(true);
+        }
+    }
+
+    // FunÃ§Ã£o para redefinir todas as variÃ¡veis de jogo para um novo inÃ­cio
+    void InitializeGameStart()
+    {
+        playerLives = 3;
+        score = 0;
+        bossSpawned = false;
+        isGameOver = false;
+        bossLives = 4;
+    }
+
+    // FunÃ§Ã£o para encontrar referÃªncias de objetos na nova cena carregada
+    void InitializeSceneReferences(Scene scene)
+    {
+        scoreText = GameObject.Find("Score")?.GetComponent<TMP_Text>();
+        livesText = GameObject.Find("Lives:")?.GetComponent<TMP_Text>();
+        bossLivesText = GameObject.Find("BossLivesText")?.GetComponent<TMP_Text>();
+        finalScoreText = GameObject.Find("FinalScoreTxt")?.GetComponent<TMP_Text>();
+
+        // CORREÃ‡ÃƒO DO AVISO CS0618: Usando FindFirstObjectByType no lugar de FindObjectOfType
+        spawner = FindFirstObjectByType<Spawner>();
+
+        if (bossLivesText != null)
+        {
+            // Esconde a vida do Boss por padrÃ£o
+            bossLivesText.gameObject.SetActive(false);
+        }
+        if (finalScoreText != null)
+        {
+            // Esconde o placar final por padrÃ£o, exceto nas cenas de game over
+            finalScoreText.gameObject.SetActive(false);
+        }
     }
 
     void Update()
     {
-        // 1. Pontuação por Tempo (MANTIDO)
-        timeScoreTimer += Time.deltaTime;
-        if (timeScoreTimer >= 1f)
+        if (!bossSpawned && score >= 2000)
         {
-            AddScore(scorePerSecond);
-            timeScoreTimer = 0f;
-        }
-
-        // NOVO: 2. Lógica de Evento - Início Automático do Slow Motion
-        if (!hasSlowMotionTriggered && Time.time >= initialSlowMotionDelay)
-        {
-            hasSlowMotionTriggered = true;
-            StartCoroutine(SlowTimeCoroutine());
-        }
-
-        // NOVO: 3. Lógica de Upgrade de Nave por Pontuação
-        if (!upgradedToLevel2 && score >= scoreUpgradeLevel2)
-        {
-            TriggerUpgrade(2);
-        }
-        else if (!upgradedToLevel3 && score >= scoreUpgradeLevel3)
-        {
-            TriggerUpgrade(3);
-        }
-
-        // 4. CONDIÇÃO DE VITÓRIA (MANTIDO)
-        if (score >= 2600)
-        {
-            LoadWinScene();
+            SpawnBoss();
         }
     }
 
-    // NOVO: Método para acionar o Upgrade
-    void TriggerUpgrade(int targetLevel)
+
+    // ====== BOSS ======
+    void SpawnBoss()
     {
-        // 1. Localiza a nave com a tag "Player"
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        bossSpawned = true;
 
-        if (playerObj != null)
+        if (spawner != null)
+            spawner.enabled = false;
+
+        Vector3 spawnPos = new Vector3(10f, 0f, 0f);
+        currentBoss = Instantiate(bossPrefab, spawnPos, Quaternion.identity);
+        bossLives = 4;
+
+        if (bossLivesText != null)
         {
-            // Tenta obter o script PlayerUpgrade da nave
-            PlayerUpgrade upgradeScript = playerObj.GetComponent<PlayerUpgrade>();
+            bossLivesText.text = "BOSS LIVES: " + bossLives;
+            bossLivesText.gameObject.SetActive(true);
+        }
+    }
 
-            if (upgradeScript != null && upgradeScript.currentLevel < targetLevel) // Verifica se o upgrade é realmente um avanço
+    public void DamageBoss(int amount)
+    {
+        if (!bossSpawned) return;
+
+        bossLives -= amount;
+        if (bossLives <= 0)
+        {
+            bossLives = 0;
+            score += 5000;
+            UpdateUI();
+
+            if (currentBoss != null)
+                Destroy(currentBoss);
+
+            ShowFinalScoreAndWin();
+        }
+        else
+        {
+            score += 2000;
+            UpdateUI();
+        }
+    }
+
+    // ====== SCORE ======
+    public void AddScore(int value)
+    {
+        if (isGameOver) return;
+        score += value;
+        UpdateUI();
+    }
+
+    // ====== PLAYER ======
+    public void TakePlayerDamage(int amount)
+    {
+        if (isGameOver) return;
+        if (Time.time - lastDamageTime < damageCooldown) return;
+
+        lastDamageTime = Time.time;
+        playerLives -= amount;
+
+        if (playerLives <= 0)
+        {
+            playerLives = 0;
+            GameOver();
+        }
+
+        UpdateUI();
+    }
+
+    // ====== INTERFACE ======
+    void UpdateUI()
+    {
+        if (scoreText != null)
+            scoreText.text = "SCORE: " + score;
+
+        if (livesText != null)
+            livesText.text = "LIVES: " + playerLives;
+
+        if (bossLivesText != null)
+        {
+            if (bossSpawned)
             {
-                upgradeScript.PerformUpgrade();
-
-                // Marca o upgrade como feito para não disparar novamente
-                if (targetLevel == 2) upgradedToLevel2 = true;
-                else if (targetLevel == 3) upgradedToLevel3 = true;
+                bossLivesText.text = "BOSS LIVES: " + bossLives;
+                bossLivesText.gameObject.SetActive(true);
+            }
+            else
+            {
+                bossLivesText.gameObject.SetActive(false);
             }
         }
     }
 
-
-    public void AddScore(int points)
+    // ====== GAME STATES ======
+    public void GameOver()
     {
-        score += points;
-        UpdateScoreDisplay();
+        if (isGameOver) return;
+        isGameOver = true;
+        SceneManager.LoadScene("GameOverScene");
     }
 
-    void UpdateScoreDisplay()
+    void ShowFinalScoreAndWin()
     {
-        if (scoreText != null)
+        if (isGameOver) return;
+        isGameOver = true;
+
+        PlayerPrefs.SetInt("FinalScore", score);
+        SceneManager.LoadScene("VictoryScene");
+    }
+
+    public void LoadFinalScore()
+    {
+        if (finalScoreText != null)
         {
-            scoreText.text = "Pontuação: " + score.ToString();
+            int finalScore = PlayerPrefs.GetInt("FinalScore", 0);
+            finalScoreText.text = "FINAL SCORE: " + finalScore;
         }
     }
 
-    public void LoseLife()
+    public void RestartGame()
     {
-        if (playerLives <= 0) return;
-
-        playerLives--;
-        UpdateLivesDisplay();
-
-        if (playerLives <= 0)
-        {
-            GameOver();
-        }
+        SceneManager.LoadScene("SampleScene");
     }
 
-    void UpdateLivesDisplay()
+
+    public void ReturnToMenu()
     {
-        if (livesText != null)
-        {
-            livesText.text = "Vidas: " + playerLives.ToString();
-        }
-    }
-
-    void GameOver()
-    {
-        Debug.Log("GAME OVER! Sua pontuação final: " + score);
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = normalFixedDeltaTime;
-        SceneManager.LoadScene(gameOverSceneName);
-    }
-
-    public void LoadWinScene()
-    {
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = normalFixedDeltaTime;
-        SceneManager.LoadScene(winSceneName);
-    }
-
-    // --- Método de Slow Warp 
-    IEnumerator SlowTimeCoroutine()
-    {
-        Time.timeScale = slowMotionFactor;
-        Time.fixedDeltaTime = normalFixedDeltaTime * Time.timeScale;
-        Debug.Log($"Time Warp ATIVADO! TimeScale setado para {slowMotionFactor}.");
-
-        yield return new WaitForSecondsRealtime(slowMotionDuration);
-
-        Time.timeScale = normalTimeScale;
-        Time.fixedDeltaTime = normalFixedDeltaTime;
-        Debug.Log("Time Warp RESTAURADO! TimeScale setado para 1.0.");
+        InitializeGameStart();
+        SceneManager.LoadScene("LoaderScene");
     }
 }

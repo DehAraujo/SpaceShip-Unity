@@ -6,6 +6,11 @@ TagManager:
   tags:
   - Enemy
   - EnemyBullet
+  - PlayerBullet
+  - EnemyShip
+  - Boss
+  - Meteor
+  - BossBullet
   layers:
   - Default
   - TransparentFX
@@ -13,9 +18,9 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Stars
+  - Player
+  - EnemyProjectile
   - 
   - 
   - 
@@ -45,4 +50,7 @@ TagManager:
     locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Stars
+    uniqueID: 2204984961
     locked: 0

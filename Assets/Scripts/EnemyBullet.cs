@@ -1,68 +1,35 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class EnemyBullet : MonoBehaviour
 {
-    public float speed = 15f;
-    public int damageAmount = 1;
-
-    private Rigidbody2D rb;
-
-    // NOVO: Armazena a direção para onde a bala deve se mover
-    private Vector2 moveDirection;
-
-    // Limite de destruição
-    private float destructionBoundary = -20f;
+    public float speed = 8f;
+    public float lifetime = 3f;
 
     void Start()
     {
-        // Pega o Rigidbody e aplica a velocidade imediatamente
-        rb = GetComponent<Rigidbody2D>();
-
-        // Se a direção foi definida, aplica a velocidade
-        if (rb != null)
-        {
-            rb.velocity = moveDirection * speed;
-        }
+        Destroy(gameObject, lifetime);
     }
 
-    // NOVO: Método que o inimigo chamará para definir a direção
-    public void SetDirection(Vector2 direction)
+    // ESTE Ã‰ O MÃ‰TODO CORRETO QUE DEVE CAUSAR DANO.
+    void OnTriggerEnter2D(Collider2D other)
     {
-        moveDirection = direction.normalized; // Normaliza para que o vetor tenha comprimento 1
-
-        // Se o Rigidbody já estiver disponível (se Start() já rodou), aplica a velocidade
-        if (rb != null)
+        if (other.CompareTag("Player"))
         {
-            rb.velocity = moveDirection * speed;
+            if (GameManager.instance != null)
+            {
+                GameManager.instance.TakePlayerDamage(1);
+            }
+            Destroy(gameObject);
         }
     }
 
     void Update()
     {
-        // Chama a checagem de limite no Update
-        CheckBoundaryAndDestroy();
-    }
+        // Movimenta o projÃ©til para a ESQUERDA (direÃ§Ã£o -X)
+        transform.Translate(Vector3.left * speed * Time.deltaTime);
 
-    // --- Colisão e Destruição ---
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            // O dano ao jogador é tratado no PlayerMovement.cs
+        // DestrÃ³i se sair da tela
+        if (transform.position.x < -15f || transform.position.x > 15f)
             Destroy(gameObject);
-        }
-    }
-
-    // MÉTODO REQUERIDO PELO UPDATE
-    void CheckBoundaryAndDestroy()
-    {
-        // Se a posição X ou Y for muito extrema, destrói
-        if (transform.position.x < destructionBoundary ||
-            transform.position.x > 20f ||
-            Mathf.Abs(transform.position.y) > 10f)
-        {
-            Destroy(gameObject);
-        }
     }
 }
