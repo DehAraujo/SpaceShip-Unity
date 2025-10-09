@@ -60,7 +60,7 @@ public class Enemy : MonoBehaviour
             if (type == EnemyType.Meteor)
                 GameManager.instance.AddScore(100);
             else if (type == EnemyType.Ship)
-                GameManager.instance.AddScore(500);
+                GameManager.instance.AddScore(200);
         }
 
         Destroy(gameObject);

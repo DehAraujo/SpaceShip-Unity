@@ -178,7 +178,10 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Meteoros_0: 5466133396584075892
+      Meteoros_1: 5985502030814838839
+      Meteoros_2: -1333873009448410555
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

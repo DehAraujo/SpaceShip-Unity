@@ -1,13 +1,14 @@
 ﻿using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
+using System.Collections; // Necessário para Coroutines (atrasos)
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
 
     [Header("UI")]
-    public TMP_Text scoreText;
+    public TMP_Text scoreText; // ÚNICA DECLARAÇÃO MANTIDA
     public TMP_Text livesText;
     public TMP_Text bossLivesText;
     public TMP_Text finalScoreText;
@@ -21,12 +22,17 @@ public class GameManager : MonoBehaviour
     private GameObject currentBoss;
     private int bossLives = 4;
     private bool bossSpawned = false;
+    public AudioClip bossSpawnSound; // Efeito sonoro de alerta
 
     private bool isGameOver = false;
     private float damageCooldown = 0.8f;
     private float lastDamageTime = -999f;
 
+    private float scoreTimer = 0f;
+    public float scoreInterval = 1f;
+
     private Spawner spawner;
+    private AudioSource backgroundMusicSource; // Referência à música de fundo
 
     void Awake()
     {
@@ -38,40 +44,40 @@ public class GameManager : MonoBehaviour
         }
         else
         {
+            if (backgroundMusicSource != null) backgroundMusicSource.Stop();
             Destroy(gameObject);
         }
 
-        // Chamado apenas na primeira vez que o objeto é criado
         InitializeGameStart();
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // 1. Sempre busca as referências de UI da cena atual
         InitializeSceneReferences(scene);
 
         if (scene.name == "SampleScene")
         {
-            // 2. Reinicia o estado do jogo apenas ao carregar a cena principal ("SampleScene")
             InitializeGameStart();
-
-            // Garantimos que o Spawner está habilitado ao iniciar o jogo
             if (spawner != null)
                 spawner.enabled = true;
+
+            if (backgroundMusicSource != null && !backgroundMusicSource.isPlaying)
+            {
+                backgroundMusicSource.Play();
+            }
         }
 
-        // 3. Garante que a UI seja atualizada imediatamente com o novo estado (3 vidas, 0 score)
         UpdateUI();
 
-        // 4. Se estiver em uma cena de placar, carrega o placar final
         if (scene.name == "GameOverScene" || scene.name == "VictoryScene")
         {
             LoadFinalScore();
             if (finalScoreText != null) finalScoreText.gameObject.SetActive(true);
+
+            if (backgroundMusicSource != null) backgroundMusicSource.Stop();
         }
     }
 
-    // Função para redefinir todas as variáveis de jogo para um novo início
     void InitializeGameStart()
     {
         playerLives = 3;
@@ -79,51 +85,101 @@ public class GameManager : MonoBehaviour
         bossSpawned = false;
         isGameOver = false;
         bossLives = 4;
+        scoreTimer = 0f;
     }
 
-    // Função para encontrar referências de objetos na nova cena carregada
     void InitializeSceneReferences(Scene scene)
     {
         scoreText = GameObject.Find("Score")?.GetComponent<TMP_Text>();
-        livesText = GameObject.Find("Lives:")?.GetComponent<TMP_Text>();
+        livesText = GameObject.Find("Lives")?.GetComponent<TMP_Text>();
         bossLivesText = GameObject.Find("BossLivesText")?.GetComponent<TMP_Text>();
         finalScoreText = GameObject.Find("FinalScoreTxt")?.GetComponent<TMP_Text>();
 
-        // CORREÇÃO DO AVISO CS0618: Usando FindFirstObjectByType no lugar de FindObjectOfType
         spawner = FindFirstObjectByType<Spawner>();
+        GameObject bgmObject = GameObject.Find("BackgroundMusic");
+        if (bgmObject != null)
+        {
+            backgroundMusicSource = bgmObject.GetComponent<AudioSource>();
+        }
 
         if (bossLivesText != null)
-        {
-            // Esconde a vida do Boss por padrão
             bossLivesText.gameObject.SetActive(false);
-        }
         if (finalScoreText != null)
-        {
-            // Esconde o placar final por padrão, exceto nas cenas de game over
             finalScoreText.gameObject.SetActive(false);
-        }
     }
 
     void Update()
     {
-        if (!bossSpawned && score >= 2000)
+        if (!isGameOver)
         {
-            SpawnBoss();
+            scoreTimer += Time.deltaTime;
+            if (scoreTimer >= scoreInterval)
+            {
+                score++;
+                scoreTimer = 0f;
+                UpdateUI();
+            }
+
+            if (!bossSpawned && score >= 4000)
+            {
+                bossSpawned = true;
+                StartCoroutine(PreBossCleanup(1f));
+            }
         }
     }
 
+    // ====== BOSS ENTRANCE SEQUENCE (Coroutine) ======
 
-    // ====== BOSS ======
-    void SpawnBoss()
+    private IEnumerator PreBossCleanup(float preSpawnDelay)
     {
-        bossSpawned = true;
+        DestroyAllEnemies();
+        yield return new WaitForSeconds(preSpawnDelay);
+        SpawnBossAction();
+    }
 
+    void DestroyObjectsWithTag(string tag)
+    {
+        GameObject[] objects = GameObject.FindGameObjectsWithTag(tag);
+        foreach (GameObject obj in objects)
+        {
+            Destroy(obj);
+        }
+    }
+
+    void DestroyAllEnemies()
+    {
         if (spawner != null)
             spawner.enabled = false;
 
+        DestroyObjectsWithTag("EnemyShip");
+        DestroyObjectsWithTag("Meteor");
+        DestroyObjectsWithTag("Enemy");
+        DestroyObjectsWithTag("EnemyBullet");
+        DestroyObjectsWithTag("BossBullet");
+    }
+
+    void SpawnBossAction()
+    {
+        if (backgroundMusicSource != null && backgroundMusicSource.isPlaying)
+        {
+            backgroundMusicSource.Stop();
+        }
+
         Vector3 spawnPos = new Vector3(10f, 0f, 0f);
-        currentBoss = Instantiate(bossPrefab, spawnPos, Quaternion.identity);
+        GameObject bossInstance = Instantiate(bossPrefab, spawnPos, Quaternion.identity);
+        currentBoss = bossInstance;
         bossLives = 4;
+
+        if (bossSpawnSound != null)
+        {
+            AudioSource.PlayClipAtPoint(bossSpawnSound, Camera.main.transform.position);
+        }
+
+        AudioSource bossAudio = currentBoss.GetComponent<AudioSource>();
+        if (bossAudio != null)
+        {
+            bossAudio.Play();
+        }
 
         if (bossLivesText != null)
         {
@@ -131,6 +187,16 @@ public class GameManager : MonoBehaviour
             bossLivesText.gameObject.SetActive(true);
         }
     }
+
+    // ====== BOSS DEATH SEQUENCE (Coroutine) ======
+
+    private IEnumerator BossDeathSequence(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ShowFinalScoreAndWin();
+    }
+
+    // ====== DAMAGE LOGIC ======
 
     public void DamageBoss(int amount)
     {
@@ -141,12 +207,16 @@ public class GameManager : MonoBehaviour
         {
             bossLives = 0;
             score += 5000;
-            UpdateUI();
 
             if (currentBoss != null)
+            {
+                AudioSource bossAudio = currentBoss.GetComponent<AudioSource>();
+                if (bossAudio != null) bossAudio.Stop();
                 Destroy(currentBoss);
+            }
 
-            ShowFinalScoreAndWin();
+            UpdateUI();
+            StartCoroutine(BossDeathSequence(2f));
         }
         else
         {
@@ -155,7 +225,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // ====== SCORE ======
+    // ====== SCORE AND DAMAGE UTILITIES ======
+
     public void AddScore(int value)
     {
         if (isGameOver) return;
@@ -163,7 +234,6 @@ public class GameManager : MonoBehaviour
         UpdateUI();
     }
 
-    // ====== PLAYER ======
     public void TakePlayerDamage(int amount)
     {
         if (isGameOver) return;
@@ -181,11 +251,12 @@ public class GameManager : MonoBehaviour
         UpdateUI();
     }
 
-    // ====== INTERFACE ======
+    // ====== INTERFACE AND GAME STATES UTILITIES ======
+
     void UpdateUI()
     {
         if (scoreText != null)
-            scoreText.text = "SCORE: " + score;
+            scoreText.text = "SCORE NAVE: " + score;
 
         if (livesText != null)
             livesText.text = "LIVES: " + playerLives;
@@ -204,14 +275,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // ====== GAME STATES ======
-    public void GameOver()
-    {
-        if (isGameOver) return;
-        isGameOver = true;
-        SceneManager.LoadScene("GameOverScene");
-    }
-
     void ShowFinalScoreAndWin()
     {
         if (isGameOver) return;
@@ -219,6 +282,13 @@ public class GameManager : MonoBehaviour
 
         PlayerPrefs.SetInt("FinalScore", score);
         SceneManager.LoadScene("VictoryScene");
+    }
+
+    public void GameOver()
+    {
+        if (isGameOver) return;
+        isGameOver = true;
+        SceneManager.LoadScene("GameOverScene");
     }
 
     public void LoadFinalScore()

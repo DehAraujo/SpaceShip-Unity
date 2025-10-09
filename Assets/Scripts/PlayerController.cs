@@ -11,6 +11,11 @@ public class PlayerController : MonoBehaviour
     public float fireRate = 0.25f;
     private float fireTimer;
 
+    // VARIÁVEIS DE ÁUDIO ADICIONADAS
+    [Header("Áudio")]
+    [SerializeField] private AudioSource audioSource; // Componente para tocar o som
+    [SerializeField] private AudioClip shootClip;      // O clipe de áudio do tiro
+
     private Rigidbody2D rb;
     private float camHeight;
     private float camWidth;
@@ -31,6 +36,13 @@ public class PlayerController : MonoBehaviour
             rb.freezeRotation = true;
         }
 
+        // CORREÇÃO: Obter o AudioSource (garante que ele exista no objeto)
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+
+
         // Dimensões da câmera
         camHeight = Camera.main.orthographicSize;
         camWidth = camHeight * Camera.main.aspect;
@@ -39,7 +51,6 @@ public class PlayerController : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null && spriteRenderer.sprite != null)
         {
-            // Usamos extents.x (metade da largura) ou size.x / 2f. Ambos são válidos.
             halfWidth = spriteRenderer.bounds.extents.x;
             halfHeight = spriteRenderer.bounds.extents.y;
         }
@@ -87,12 +98,20 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKey(KeyCode.Space) && fireTimer >= fireRate)
         {
             fireTimer = 0f;
+
+            // LÓGICA DE ÁUDIO ADICIONADA: Toca o som do tiro
+            if (audioSource != null && shootClip != null)
+            {
+                // PlayOneShot permite que vários tiros toquem sem cortar o som anterior
+                audioSource.PlayOneShot(shootClip, 0.5f);
+            }
+
+            // Instancia o projétil
             if (raioNavePrefab && firePoint)
                 Instantiate(raioNavePrefab, firePoint.position, Quaternion.identity);
         }
     }
 
-    // OBTIVEMOS O MÉTODO E O COLOCAMOS DENTRO DA CLASSE
     void OnTriggerEnter2D(Collider2D other)
     {
         // Define as Tags de colisão
@@ -135,4 +154,4 @@ public class PlayerController : MonoBehaviour
         Gizmos.DrawLine(bottomRight, bottomLeft);
         Gizmos.DrawLine(bottomLeft, topLeft);
     }
-} // <--- A CHAVE FINAL ESTÁ AGORA NO LUGAR CERTO.
+}
