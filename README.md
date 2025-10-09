@@ -57,6 +57,19 @@ O jogo conta com efeitos sonoros e música ambiente para intensificar a imersão
 
 
 ---
+## 🌌 Parallax Background
+
+O sistema de **Parallax** cria profundidade visual, simulando múltiplas camadas de estrelas e galáxias em movimento.  
+Conforme o jogador se move, os planos de fundo deslizam em velocidades diferentes — quanto mais distante, mais lento o movimento.
+
+**Camadas recomendadas:**
+
+| Camada | Velocidade | Exemplo de Sprite |
+|--------|-------------|-------------------|
+| **Layer 1** (próxima) | 0.6x | Estrelas brilhantes |
+| **Layer 2** (distante) | 0.4x | Espaço |
+
+---
 
 ## 💻 Tecnologias utilizadas
 
@@ -66,6 +79,7 @@ O jogo conta com efeitos sonoros e música ambiente para intensificar a imersão
 - **Sprites 2D e Física 2D**
 - **AudioSource / AudioMixer**
 - **Time.timeScale (para Slow Motion)**
+- **Câmera com Parallax Dinâmico**
 
 ---
 
@@ -77,7 +91,8 @@ O jogo conta com efeitos sonoros e música ambiente para intensificar a imersão
 - `Meteor.cs` → comportamento dos meteoros.  
 - `Boss.cs` → comportamento do chefão final.  
 - `Spawner.cs` → cria inimigos aleatoriamente.  
-- `SlowMotionController.cs` → gerencia a ativação do modo Slow Motion.  
+- `SlowMotionController.cs` → gerencia a ativação do modo Slow Motion.
+- ParallaxBackground.cs → Cria o efeito de profundidade do fundo.
 
 ---
 
