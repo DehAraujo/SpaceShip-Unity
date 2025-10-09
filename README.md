@@ -16,7 +16,7 @@ Um jogo de naves espaciais desenvolvido em **Unity (C#)** onde você enfrenta in
 | Entidade      | Vidas | Movimento          | Atira | Direção do tiro         | Pontuação                       |
 | ------------- | ----- | ------------------ | ----- | ----------------------- | ------------------------------- |
 | **Player**    | 3     | Esquerda ↔ Direita | Sim   | ➡️ (esquerda → direita) | —                               |
-| **EnemyShip** | 2     | Direita → Esquerda | Sim   | ➡️ (direita → esquerda) | +500 por vida                   |
+| **EnemyShip** | 2     | Direita → Esquerda | Sim   | ➡️ (direita → esquerda) | +200 por vida                   |
 | **Meteor**    | 1     | Cima → Baixo       | Não   | —                       | +100                            |
 | **Boss**      | 4     | Fixo (Direita)     | Sim   | ➡️ (direita → esquerda) | +2000 por vida, +5000 ao morrer |
 
