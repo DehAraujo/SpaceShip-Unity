@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: f8284fdcda38a8646a9b3bce95f83e7f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - raioPrefab: {fileID: 7780236437430784490, guid: 8ee504004b5e0a04481f8fc5b9d5d99b, type: 3}
+  - firePoint: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
